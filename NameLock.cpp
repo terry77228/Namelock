@@ -6,8 +6,8 @@
 NameLock::NameLock(const std::string& _name):m_name(_name),Locked(false){
     m_sem = sem_open(_name.c_str(), O_CREAT | O_EXCL, S_IRWXU | S_IRWXG| S_IRWXO, 1);
 
-    if(m_sem == SEM_FAILED){
-        m_sem = sem_open(_name.c_str(), O_EXNameLock);
+    if (errno == EEXIST) {
+        m_sem = sem_open(_name.c_str(), O_EXLOCK);
         if (m_sem == SEM_FAILED) {
             throw lock_exception("Open/Create lock failed",errno);
         }
