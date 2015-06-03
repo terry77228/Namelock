@@ -9,8 +9,11 @@ NameLock::NameLock(const std::string& _name):m_name(_name),Locked(false){
     if(m_sem == SEM_FAILED){
         m_sem = sem_open(_name.c_str(), O_EXNameLock);
         if (m_sem == SEM_FAILED) {
-            throw NameLock_exception("Open/Create NameLock failed",errno);
+            throw lock_exception("Open/Create lock failed",errno);
         }
+    }
+    else{
+        throw lock_exception("Open/Create lock failed",errno);
     }
 
 };
@@ -25,50 +28,56 @@ NameLock::~NameLock(){
 
 int NameLock::Wait(int * _errno){
 
-    int l_res = sem_wait(m_sem);
-    if (l_res != 0) {
-        if(_errno != nullptr)
-            *_errno = errno;
-        return -1;
+    if (!locked) {
+        int l_res = sem_wait(m_sem);
+        if (l_res != 0) {
+            if(_errno != nullptr)
+                *_errno = errno;
+            return -1;
+        }
+        m_locked = true;
     }
-    m_locked = true;
+    
     return 0;
 
 }
 
 int NameLock::TryWait(int * _errno){
 
-    int l_res = sem_trywait(m_sem);
-    if (l_res != 0) {
-        if(_errno != nullptr)
-            *_errno = errno;
-        return -1;
+    if (!locked) {
+        int l_res = sem_trywait(m_sem);
+        if (l_res != 0) {
+            if(_errno != nullptr)
+                *_errno = errno;
+            return -1;
+        }
+        m_locked = true;
     }
-    m_locked = true;
     return 0;
 
 }
 
 int NameLock::TimedWait(int _timeout,int * _errno){
 
-    int l_res =  0;
-    time_t l_BeginTime = time(nullptr);
-
-    do{
-        l_res = sem_trywait(m_sem);
-        if (l_res == 0 || time(nullptr) - l_BeginTime > _timeout) {
-            break;
+    if (!locked) {
+        int l_res =  -1;
+        time_t l_BeginTime = time(nullptr);
+        
+        do{
+            l_res = sem_trywait(m_sem);
+            if (l_res == 0 || (time(nullptr) - l_BeginTime > _timeout_sec)) {
+                break;
+            }
+            usleep(100);
+        }while (1);
+        if (l_res != 0) {
+            if(_errno != nullptr)
+                *_errno = errno;
+            return -1;
         }
-        usleep(100);
-    }while (1);
-
-    if (l_res != 0) {
-        if(_errno != nullptr)
-            *_errno = errno;
-        return -1;
+        
+        m_locked = true;
     }
-
-    m_locked = true;
     return 0;
 
 
