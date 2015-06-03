@@ -4,6 +4,16 @@
 #include <semaphore.h>
 #include <string>
 
+class Uncopyable{
+
+	protected:
+		Uncopyable(){};
+		~Uncopyable(){};
+	private:
+		Uncopyable(const Uncopyable&);
+		Uncopyable& operator=(const Uncopyable&);
+}
+
 class lock_exception : std::exception{
 public:
     lock_exception(const std::string& _errorInfo, int _errorCode):m_ErrorInfo(_errorInfo),m_ErrorCode(_errorCode){
@@ -22,7 +32,7 @@ private:
     int m_ErrorCode;
 };
 
-class NameLock{
+class NameLock : private Uncopyable{
     
 public:
     NameLock(const std::string& _name);
